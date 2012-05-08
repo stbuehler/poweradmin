@@ -950,12 +950,18 @@ function get_zones($perm,$userid=0,$letterstart='all',$rowstart=0,$rowamount=999
 		$sortby = "domains.".$sortby;
 	}
 
+    if ($sortby == 'domains.owner') {
+        $sortby = 'users.fullname';
+    }
+
 	$sqlq = "SELECT domains.id,
 			domains.name,
 			domains.type,
-			Record_Count.count_records
+			Record_Count.count_records,
+            users.fullname
 			FROM domains
 			LEFT JOIN zones ON domains.id=zones.domain_id
+			LEFT JOIN users ON zones.owner=users.id
 			LEFT JOIN (
 				SELECT COUNT(domain_id) AS count_records, domain_id FROM records GROUP BY domain_id
 			) Record_Count ON Record_Count.domain_id=domains.id
@@ -972,10 +978,11 @@ function get_zones($perm,$userid=0,$letterstart='all',$rowstart=0,$rowamount=999
 	while($r = $result->fetchRow())
 	{
 		$ret[$r["name"]] = array(
-		"id"		=>	$r["id"],
-		"name"		=>	$r["name"],
-		"type"		=>	$r["type"],
-		"count_records"	=>	$r["count_records"]
+            'id'		=>	$r['id'],
+            'name'		=>	$r['name'],
+            'type'		=>	$r['type'],
+            'count_records'	=>	$r['count_records'],
+            'owners'     => $r['fullname']
 		);	
 	}
 	return $ret;

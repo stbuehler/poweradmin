@@ -44,7 +44,7 @@ $count_zones_edit = zone_count_ng($perm_edit);
 # that causes failure.
 
 $zone_sort_by = ZONE_SORT_BY;
-if (!in_array(ZONE_SORT_BY, array('name','type','records'))) {
+if (!in_array(ZONE_SORT_BY, array('name','type','records', 'owner'))) {
     $zone_sort_by = 'name';
 }
 
@@ -79,7 +79,7 @@ if ($perm_view == "none") {
 	echo "       <th><a href=\"list_zones.php?zone_sort_by=name\">" . _('Name') . "</a></th>\n";
 	echo "       <th><a href=\"list_zones.php?zone_sort_by=type\">" . _('Type') . "</a></th>\n";
 	echo "       <th><a href=\"list_zones.php?zone_sort_by=count_records\">" . _('Records') . "</a></th>\n";
-	echo "       <th>" . _('Owner') . "</th>\n";
+	echo "       <th><a href=\"list_zones.php?zone_sort_by=owner\">" . _('Owner') . "</a></th>\n";
 	if ($iface_zonelist_serial) echo "       <th>" . _('Serial') . "</th>\n";
 	echo "      </tr>\n";
 
@@ -95,7 +95,6 @@ if ($perm_view == "none") {
 	{
 		if ($zone['count_records'] == NULL) { $zone['count_records'] = 0; }
 
-		$zone_owners = get_fullnames_owners_from_domainid($zone['id']);
 		if ($iface_zonelist_serial) $serial = get_serial_by_zid($zone['id']);
 
 		if ( $perm_edit != "all" || $perm_edit != "none") {
@@ -116,7 +115,7 @@ if ($perm_view == "none") {
 		echo "          <td class=\"name\">" . $zone["name"] . "</td>\n";
 		echo "          <td class=\"type\">" . strtolower($zone["type"]) . "</td>\n";
 		echo "          <td class=\"count\">" . $zone["count_records"] . "</td>\n";
-		echo "          <td class=\"owner\">" . $zone_owners . "</td>\n";
+		echo "          <td class=\"owner\">" . $zone['owners'] . "</td>\n";
 		if ($iface_zonelist_serial) {
 			if ($serial != "") {
 				echo "          <td class=\"y\">" . $serial . "</td>\n";
