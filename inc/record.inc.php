@@ -1527,21 +1527,24 @@ function get_users_from_domain_id($id) {
 
 /** Search for Zone or Record
  *
- * @param string $holy_grail  String to search
+ * @param string $search_string  String to search
  * @param string $perm User permitted to view 'all' or 'own' zones
  * @param string $zone_sortby Column to sort domain results [default='name']
  * @param string $record_sortby Column to sort record results by [default='name']
+ * @param boolean $wildcards Add wildcards automatically
+ * @param boolean $arpa Search reverse records automatically
  *
  * @return mixed[] 'zones' => array of zones, 'records' => array of records 
  */
-function search_zone_and_record($holy_grail,$perm,$zone_sortby='name',$record_sortby='name') {
+function search_zone_and_record($search_string,$perm,$zone_sortby='name',$record_sortby='name',$wildcards=true,$arpa=true) {
 	
 	global $db;
 
-	$holy_grail = trim($holy_grail);
+	$search_string = trim($search_string);
 
 	$sql_add_from = '';
 	$sql_add_where = '';
+  $arpa_search = '';
 
 	$return_zones = array();
 	$return_records = array();
@@ -1563,6 +1566,18 @@ function search_zone_and_record($holy_grail,$perm,$zone_sortby='name',$record_so
                 $sql_add_from = ", zones, users ";
                 $sql_add_where = " AND zones.domain_id = domains.id AND users.id = " . $db->quote($_SESSION['userid'], 'integer') . " AND zones.owner = " . $db->quote($_SESSION['userid'], 'integer');
 	}
+
+
+  if ($arpa) {
+    if (preg_match("/^[0-9\.]+$/", $search_string)) {
+        $quads = explode('.', $search_string);
+        $arpa_search = join('.',array_reverse($quads));
+    }
+    if (preg_match("/^[0-9a-f]{0,4}:([0-9a-f]{0,4}:){0,6}[0-9a-f]{0,4}$/i", $search_string)) {
+        //TODO ipv6 search
+    }
+  }
+
 	$query = "SELECT 
 			domains.id AS zid,
 			domains.name AS name,
@@ -1570,7 +1585,9 @@ function search_zone_and_record($holy_grail,$perm,$zone_sortby='name',$record_so
 			domains.master AS master,
                         zones.owner AS owner
 			FROM domains" . $sql_add_from . "
-			WHERE domains.name LIKE " . $db->quote($holy_grail, 'text')
+			WHERE " . ($arpa_search ? "(" : "") . 
+      " domains.name LIKE " . $db->quote(($wildcards ? "%" : "") . $search_string . ($wildcards ? "%" : "") , 'text')
+			. ($arpa_search ? " OR domains.name LIKE " . $db->quote("%" . $arpa_search . "%in-addr.arpa", 'text') .")" : "")
 			. $sql_add_where . "
                         ORDER BY " . $zone_sortby;
 
@@ -1614,7 +1631,9 @@ function search_zone_and_record($holy_grail,$perm,$zone_sortby='name',$record_so
 			records.prio AS prio,
 			records.domain_id AS zid
 			FROM records" . $sql_add_from . "
-			WHERE (records.name LIKE " . $db->quote($holy_grail, 'text') . " OR records.content LIKE " . $db->quote($holy_grail, 'text') . ")"
+			WHERE (records.name LIKE " . $db->quote(($wildcards ? "%" : "")  . $search_string . ($wildcards ? "%" : "") , 'text') . " OR records.content LIKE " . $db->quote(($wildcards ? "%" : "")  . $search_string . ($wildcards ? "%" : "") , 'text')
+			. ($arpa_search ? " OR records.name LIKE " . $db->quote("%" . $arpa_search . "%in-addr.arpa", 'text') : "")
+      . ")"
 			. $sql_add_where . "
 			ORDER BY " . $record_sortby; 
 
